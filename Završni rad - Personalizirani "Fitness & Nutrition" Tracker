@@ -16,7 +16,7 @@
 #define BAZA_KORISNICI "korisnici.bin"
 #define BACKUP_DATOTEKA "backup.bin"
 
-#define IZRACUNAJ_BMI(tezina, visina_m) ((tezina) / ((visina_m) * (visina_m)))
+#define IZRACUNAJ_BMI (tezina, visina_m) ((tezina) / ((visina_m) * (visina_m)))
 
 extern int globalni_brojac_operacija;
 
