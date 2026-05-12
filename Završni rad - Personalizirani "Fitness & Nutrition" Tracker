@@ -1,1 +1,111 @@
+#pragma once
 
+#define _CRT_SECURE_NO_WARNINGS
+
+#ifndef HEADER_H
+#define HEADER_H
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+#include <errno.h>
+
+#define MAX_STRING 64
+#define BAZA_NAMIRNICE "namirnice.bin"
+#define BAZA_KORISNICI "korisnici.bin"
+#define BACKUP_DATOTEKA "backup.bin"
+
+#define IZRACUNAJ_BMI(tezina, visina_m) ((tezina) / ((visina_m) * (visina_m)))
+
+extern int globalni_brojac_operacija;
+
+typedef enum
+{
+    IZLAZ_PROGRAMA = 0,
+    MODUL_NAMIRNICE,
+    MODUL_KORISNICI,
+    MODUL_DNEVNIK,
+    MODUL_ALATI
+} GLAVNI_IZBORNIK;
+
+typedef enum
+{
+    OPCIJA_DODAJ = 1,
+    OPCIJA_PRIKAZI,
+    OPCIJA_AZURIRAJ,
+    OPCIJA_OBRISI,
+    OPCIJA_NAZAD = 0
+} SUB_IZBORNIK;
+
+typedef union
+{
+    float ciljana_kilaza;
+    int ciljane_kalorije;
+} CILJ_UNIJA;
+
+typedef struct
+{
+    int identifikator;
+    char naziv[MAX_STRING];
+    float energetska_vrijednost;
+    float kolicina_proteina;
+    float kolicina_masti;
+    float kolicina_uh;
+} PODATAK_NAMIRNICA;
+
+typedef struct
+{
+    int id_korisnika;
+    char ime_korisnika[MAX_STRING];
+    float tezina_kg;
+    float visina_cm;
+    int odabran_cilj;
+    CILJ_UNIJA podatak_cilja;
+} PODATAK_KORISNIK;
+
+typedef struct
+{
+    int id_zapisa;
+    int referenca_namirnice;
+    float kolicina_konzumirana;
+} DNEVNI_ZAPIS;
+
+typedef struct ElementListe
+{
+    DNEVNI_ZAPIS unos;
+    struct ElementListe* sljedeci;
+} CVOR_LISTE;
+
+void ocisti_ulazni_buffer(void);
+int provjera_unosa_int(int minimum, int maksimum);
+float provjera_unosa_float(float minimum, float maksimum);
+void provjera_unosa_string(char* spremnik, int max_velicina);
+void ispis_glavnog_menija(void);
+void ispis_podmenija(const char* naslov);
+
+void provjeri_inicijalne_datoteke(void);
+void kreiraj_zapis_namirnice(void);
+void procitaj_sve_namirnice(void);
+void azuriraj_zapis_namirnice(void);
+void obrisi_zapis_namirnice(void);
+
+void kreiraj_zapis_korisnika(void);
+void procitaj_sve_korisnike(void);
+
+CVOR_LISTE* dodaj_element_liste(CVOR_LISTE* pocetak);
+void rekurzivni_ispis_liste(CVOR_LISTE* trenutni);
+CVOR_LISTE* rekurzivno_brisanje_liste(CVOR_LISTE* trenutni);
+int rekurzivno_prebrojavanje_liste(CVOR_LISTE* trenutni);
+
+int funkcija_za_qsort(const void* prvi, const void* drugi);
+void pokreni_sortiranje_baze(void);
+int rekurzivna_binarna_pretraga(PODATAK_NAMIRNICA* polje, int lijevo, int desno, int kljuc);
+void pokreni_pretragu_baze(void);
+
+void napravi_sigurnosnu_kopiju(void);
+void prikazi_velicinu_datoteke(void);
+void ispisi_ieee754_format(void);
+void pokreni_izracun_bmi(void);
+
+#endif
