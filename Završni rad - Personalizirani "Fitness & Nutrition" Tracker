@@ -1,1 +1,146 @@
+#include "header.h"
 
+int globalni_brojac_operacija = 0;
+
+int main(void)
+{
+    int odabir_glavni;
+    int odabir_sporedni;
+    static int broj_pokretanja = 0;
+    CVOR_LISTE* glava_dnevnika;
+
+    glava_dnevnika = NULL;
+    odabir_glavni = -1;
+    broj_pokretanja = broj_pokretanja + 1;
+
+    provjeri_inicijalne_datoteke();
+
+    while (odabir_glavni != IZLAZ_PROGRAMA)
+    {
+        ispis_glavnog_menija();
+        odabir_glavni = provjera_unosa_int(0, 4);
+
+        if (odabir_glavni == MODUL_NAMIRNICE)
+        {
+            odabir_sporedni = -1;
+            while (odabir_sporedni != OPCIJA_NAZAD)
+            {
+                ispis_podmenija("BAZA NAMIRNICA");
+                odabir_sporedni = provjera_unosa_int(0, 4);
+
+                if (odabir_sporedni == OPCIJA_DODAJ)
+                {
+                    kreiraj_zapis_namirnice();
+                    globalni_brojac_operacija = globalni_brojac_operacija + 1;
+                }
+                else if (odabir_sporedni == OPCIJA_PRIKAZI)
+                {
+                    procitaj_sve_namirnice();
+                }
+                else if (odabir_sporedni == OPCIJA_AZURIRAJ)
+                {
+                    azuriraj_zapis_namirnice();
+                    globalni_brojac_operacija = globalni_brojac_operacija + 1;
+                }
+                else if (odabir_sporedni == OPCIJA_OBRISI)
+                {
+                    obrisi_zapis_namirnice();
+                    globalni_brojac_operacija = globalni_brojac_operacija + 1;
+                }
+            }
+        }
+        else if (odabir_glavni == MODUL_KORISNICI)
+        {
+            odabir_sporedni = -1;
+            while (odabir_sporedni != OPCIJA_NAZAD)
+            {
+                ispis_podmenija("BAZA KORISNIKA");
+                odabir_sporedni = provjera_unosa_int(0, 4);
+
+                if (odabir_sporedni == OPCIJA_DODAJ)
+                {
+                    kreiraj_zapis_korisnika();
+                    globalni_brojac_operacija = globalni_brojac_operacija + 1;
+                }
+                else if (odabir_sporedni == OPCIJA_PRIKAZI)
+                {
+                    procitaj_sve_korisnike();
+                }
+            }
+        }
+        else if (odabir_glavni == MODUL_DNEVNIK)
+        {
+            odabir_sporedni = -1;
+            while (odabir_sporedni != OPCIJA_NAZAD)
+            {
+                ispis_podmenija("DNEVNIK PREHRANE (JPP)");
+                odabir_sporedni = provjera_unosa_int(0, 4);
+
+                if (odabir_sporedni == OPCIJA_DODAJ)
+                {
+                    glava_dnevnika = dodaj_element_liste(glava_dnevnika);
+                }
+                else if (odabir_sporedni == OPCIJA_PRIKAZI)
+                {
+                    printf("\nSADRZAJ DNEVNIKA:\n");
+                    rekurzivni_ispis_liste(glava_dnevnika);
+                }
+                else if (odabir_sporedni == OPCIJA_AZURIRAJ)
+                {
+                    int ukupno_cvora;
+                    ukupno_cvora = rekurzivno_prebrojavanje_liste(glava_dnevnika);
+                    printf("Ukupan broj zapisa u dnevniku: %d\n", ukupno_cvora);
+                }
+                else if (odabir_sporedni == OPCIJA_OBRISI)
+                {
+                    glava_dnevnika = rekurzivno_brisanje_liste(glava_dnevnika);
+                    printf("Dnevnik je uspjesno ispraznjen.\n");
+                }
+            }
+        }
+        else if (odabir_glavni == MODUL_ALATI)
+        {
+            odabir_sporedni = -1;
+            while (odabir_sporedni != OPCIJA_NAZAD)
+            {
+                printf("\n--- ALATI I ANALIZA ---\n");
+                printf("1. Sortiraj bazu (qsort)\n");
+                printf("2. Pretrazi bazu (Binarno)\n");
+                printf("3. Backup baze podataka\n");
+                printf("4. Analiza datoteke (fseek/ftell)\n");
+                printf("5. IEEE 754 prikaz i BMI\n");
+                printf("0. Povratak nazad\n");
+                printf("Odabir: ");
+                
+                odabir_sporedni = provjera_unosa_int(0, 5);
+
+                if (odabir_sporedni == 1)
+                {
+                    pokreni_sortiranje_baze();
+                }
+                else if (odabir_sporedni == 2)
+                {
+                    pokreni_pretragu_baze();
+                }
+                else if (odabir_sporedni == 3)
+                {
+                    napravi_sigurnosnu_kopiju();
+                }
+                else if (odabir_sporedni == 4)
+                {
+                    prikazi_velicinu_datoteke();
+                }
+                else if (odabir_sporedni == 5)
+                {
+                    pokreni_izracun_bmi();
+                    ispisi_ieee754_format();
+                }
+            }
+        }
+    }
+
+    glava_dnevnika = rekurzivno_brisanje_liste(glava_dnevnika);
+    printf("Zavrsetak rada programa. Ukupno operacija: %d\n", globalni_brojac_operacija);
+
+    return 0;
+}
