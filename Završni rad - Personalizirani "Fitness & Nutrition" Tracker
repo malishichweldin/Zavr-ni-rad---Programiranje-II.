@@ -1,1 +1,150 @@
+#include "header.h"
 
+void ocisti_ulazni_buffer(void)
+{
+    int znak;
+    znak = getchar();
+    while (znak != '\n')
+    {
+        if (znak == EOF)
+        {
+            break;
+        }
+        znak = getchar();
+    }
+}
+
+int provjera_unosa_int(int minimum, int maksimum)
+{
+    int broj;
+    int provjera;
+    broj = 0;
+    provjera = 0;
+
+    while (provjera == 0)
+    {
+        if (scanf("%d", &broj) == 1)
+        {
+            if (broj >= minimum)
+            {
+                if (broj <= maksimum)
+                {
+                    provjera = 1;
+                }
+                else
+                {
+                    printf("Broj prevelik! Ponovite: ");
+                }
+            }
+            else
+            {
+                printf("Broj premali! Ponovite: ");
+            }
+        }
+        else
+        {
+            printf("Neispravan unos! Ponovite: ");
+        }
+        ocisti_ulazni_buffer();
+    }
+    return broj;
+}
+
+float provjera_unosa_float(float minimum, float maksimum)
+{
+    float broj;
+    int provjera;
+    broj = 0.0f;
+    provjera = 0;
+
+    while (provjera == 0)
+    {
+        if (scanf("%f", &broj) == 1)
+        {
+            if (broj >= minimum)
+            {
+                if (broj <= maksimum)
+                {
+                    provjera = 1;
+                }
+                else
+                {
+                    printf("Vrijednost prevelika! Ponovite: ");
+                }
+            }
+            else
+            {
+                printf("Vrijednost premala! Ponovite: ");
+            }
+        }
+        else
+        {
+            printf("Neispravan unos! Ponovite: ");
+        }
+        ocisti_ulazni_buffer();
+    }
+    return broj;
+}
+
+void provjera_unosa_string(char* spremnik, int max_velicina)
+{
+    char* pokazivac;
+    int duljina;
+
+    pokazivac = fgets(spremnik, max_velicina, stdin);
+
+    if (pokazivac != NULL)
+    {
+        duljina = strlen(spremnik);
+        if (duljina > 0)
+        {
+            if (spremnik[duljina - 1] == '\n')
+            {
+                spremnik[duljina - 1] = '\0';
+            }
+        }
+    }
+}
+
+void ispis_glavnog_menija(void)
+{
+    printf("\n");
+    printf("======================================\n");
+    printf("         GLAVNI IZBORNIK              \n");
+    printf("======================================\n");
+    printf("1. Upravljanje namirnicama\n");
+    printf("2. Upravljanje korisnicima\n");
+    printf("3. Upravljanje dnevnikom\n");
+    printf("4. Alati i sistemske funkcije\n");
+    printf("0. Gasenje sustava\n");
+    printf("Odabir: ");
+}
+
+void ispis_podmenija(const char* naslov)
+{
+    printf("\n--- %s ---\n", naslov);
+    printf("1. Dodavanje novog zapisa\n");
+    printf("2. Prikaz svih zapisa\n");
+    printf("3. Azuriranje / Detalji\n");
+    printf("4. Brisanje / Praznjenje\n");
+    printf("0. Povratak nazad\n");
+    printf("Odabir: ");
+}
+
+void provjeri_inicijalne_datoteke(void)
+{
+    FILE* datoteka_namirnice;
+    FILE* datoteka_korisnici;
+
+    datoteka_namirnice = fopen(BAZA_NAMIRNICE, "ab");
+    if (datoteka_namirnice != NULL)
+    {
+        fclose(datoteka_namirnice);
+    }
+
+    datoteka_korisnici = fopen(BAZA_KORISNICI, "ab");
+    if (datoteka_korisnici != NULL)
+    {
+        fclose(datoteka_korisnici);
+    }
+}
