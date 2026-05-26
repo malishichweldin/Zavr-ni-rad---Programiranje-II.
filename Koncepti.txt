@@ -1,1 +1,284 @@
+1. Minimum koji studenti MORAJU imati je implementirani CRUID. Create-Read-Update-InsertDelete i tu se misli na kontekst sadržaja koji se zapisuje u datoteku koja može biti tekstualna ili
+binarna. Dalje samo nadograđujete svoj program!
+
+	void kreiraj_zapis_namirnice(void);
+	void procitaj_sve_namirnice(void);
+	void azuriraj_zapis_namirnice(void);
+	void obrisi_zapis_namirnice(void);
+
+
+
+2. Odabir konkretnih primitivnih tipova podataka za rad s cjelobrojnim i realnim konstantama.
+
+	INT : int identifikator; int id_korisnika;
+	FLOAT : float energetska_vrijednost; float kolicina_proteina; 
+
+
+
+3. Odabir konkretnih složenih tipova podataka za rad sa specifičnim objektima.
+
+	typedef struct
+{
+	int id_korisnika;
+	char ime_korisnika[MAX_STRING];
+	float tezina_kg;
+	float visina_cm;
+	int odabran_cilj;
+	CILJ_UNIJA podatak_cilja;
+} PODATAK_KORISNIK;
+
+
+
+4. Primjena typedef sa strukturama i unijama, po potrebi s enum tipovima podataka tamo gdje
+treba.
+
+	typedef union
+	{
+		float ciljana_kilaza;
+		int ciljane_kalorije;
+	} CILJ_UNIJA;
+
+
+
+5. Imenovanje identifikatora (varijabli, konstanti, polja, funkcija, pokazivača…) – upotreba
+camelCase, PascalCase i snake_case konzistento kroz cijeli projekt.
+
+	float energetska_vrijednost;
+	float kolicina_proteina;
+	float kolicina_konzumirana;
+
+
+
+6. Primjena ključne riječi static za globalne i lokalne varijable.
+
+	    static int broj_pokretanja = 0;
+
+
+
+7. Organizacija izvornog kôda.
+	
+	#pragma once
+	#endif
+
+	#ifndef HEADER_H
+	#define HEADER_H
+	
+
+
+8. Primjena extern ključne riječi za globalne varijable.
+
+	extern int globalni_brojac_operacija;
+
+
+
+9. Ako su funkcije jednostavne koristiti makro funkcije ili inline funkcije.
+
+	#define IZRACUNAJ_BMI (tezina, visina_m) ((tezina) / ((visina_m) * (visina_m)))
+
+
+
+10. Izbornik/podizbornici.
+
+	void ispis_glavnog_menija(void)
+	{
+		printf("\n");
+		printf("======================================\n");
+		printf(" GLAVNI IZBORNIK \n");
+		printf("======================================\n");
+		printf("1. Upravljanje namirnicama\n");
+		printf("2. Upravljanje korisnicima\n");
+		printf("3. Upravljanje dnevnikom\n");
+		printf("4. Alati i sistemske funkcije\n");
+		printf("0. Gasenje sustava\n");
+		printf("Odabir: ");
+	}
+
+
+
+11. Kod izbornika koristiti enum tipove ili makro simbole.
+
+	if (odabir_glavni == MODUL_NAMIRNICE)
+
+
+
+12. Generalno upotreba pokazivača tamo gdje su potrebni.
+	
+	CVOR_LISTE* glava_dnevnika;
+
+
+
+13. Generalno upotreba struktura i funkcija.
+
+	CVOR_LISTE* dodaj_element_liste(CVOR_LISTE* pocetak);
+
+
+
+14. Zaštita parametara kod svih funkcija.
+
+	void ispis_podmenija(const char* naslov)
+	int funkcija_za_qsort(const void* prvi, const void* drugi)
+
+
+
+15. Koristiti statički zauzeta polja gdje su potrebna, nikako ne koristiti VLA polja.
+	
+	char naziv[MAX_STRING];
+	char ime_korisnika[MAX_STRING];
+
+
+
+16. Koristiti dinamičko zauzimanje memorije za bilo koji tip podatka, osobito za složene tipove
+podataka.
+
+	novi_zapis = (PODATAK_NAMIRNICA*)calloc(1, sizeof(PODATAK_NAMIRNICA));
+
+
+
+17. Koristiti funkcije malloc(), calloc(), realloc(), free() – neku od njih, ako ne i sve.
+
+	polje = (PODATAK_NAMIRNICA*)malloc(broj_podataka * sizeof(PODATAK_NAMIRNICA));
+
+    	if (polje == NULL)
+    	{
+        	perror("Alokacija memorije nije uspjela");
+        	fclose(pokazivac);
+        	return;
+    	}
+
+    	fread(polje, sizeof(PODATAK_NAMIRNICA), broj_podataka, pokazivac);
+    	fclose(pokazivac);
+
+    	printf("Unesite ID za pretragu: ");
+    	kljuc_pretrage = provjera_unosa_int(1, 99999);
+
+    	rezultat_indeks = rekurzivna_binarna_pretraga(polje, 0, broj_podataka - 1, kljuc_pretrage);
+
+    	if (rezultat_indeks != -1)
+    	{
+        	printf("Uspjesna pretraga: Pronadjen naziv: %s\n", polje[rezultat_indeks].naziv);
+    	}
+    	else
+    	{
+        	printf("Na zalost, namirnica s ID %d nije pronadjena.\n", kljuc_pretrage);
+    	}
+
+    	free(polje);
+    	polje = NULL;
+	}
+
+
+
+18. Sigurno brisanje memorije koja je dinamički zauzeta, anuliranje memorijskog prostora, provjera
+pokazivača kako se ne bi dogodila pogreška double free() i anuliranje svih pokazivača koji su bili
+usmjereni na memorijski prostor koji se dinamički zauzeo.
+
+	if (pokazivac_datoteke == NULL)
+    	{
+        strcpy(tekst_greske, strerror(errno));
+        printf("Greska pri otvaranju datoteke: %s\n", tekst_greske);
+        return;
+    	}
+
+	free(novi_zapis);
+    	novi_zapis = NULL;
+
+
+
+19. Datoteke, koristiti tekstualnu ili binarnu, provjera pokazivača i zatvaranje datoteke.
+
+	#define BAZA_NAMIRNICE "namirnice.bin"
+	
+
+
+20. Koristiti funkcije fseek(), ftell(), rewind(), ovisno o potrebi – neku od njih ako ne sve.
+
+	fseek(pokazivac, 0, SEEK_END);
+    	velicina_datoteke = ftell(pokazivac);
+    	broj_elemenata = (int)(velicina_datoteke / sizeof(PODATAK_NAMIRNICA));
+    	rewind(pokazivac);
+
+
+
+21. Koristiti funkcije remove(), rename(), po potrebi implementirati funkciju za kopiranje datoteka.
+
+	remove(BAZA_NAMIRNICE);
+    
+    	if (rename("privremena.bin", BAZA_NAMIRNICE) != 0)
+    	{
+        	perror("Greska prilikom preimenovanja datoteke");
+    	}
+
+
+
+22. Upravljati s pogreškama, errno, perror(), strerror(), feof(), ferror() – neku od njih ako ne sve.
+
+	while (1)
+    	{
+        	prenesen_bajt = fgetc(citanje);
+
+        	if (feof(citanje))
+        	{
+            	break;
+        	}
+
+        	if (ferror(citanje))
+        	{
+            	perror("Greska za vrijeme citanja");
+            	break;
+        	}
+
+        	fputc(prenesen_bajt, pisanje);
+    	}	
+
+
+
+23. Sortiranje – preporuka koristiti ugrađenu qsort() funkciju, inače se može koristiti bilo koja
+funkcija sortiranja.
+
+	qsort(dinamicko_polje, broj_elemenata, sizeof(PODATAK_NAMIRNICA), funkcija_za_qsort);
+
+
+
+24. Pretraživanje – preporuka koristiti ugrađenu bsearch() funkciju, inače se može koristiti bilo koja
+funkcija pretraživanja.
+
+	rezultat_indeks = rekurzivna_binarna_pretraga(polje, 0, broj_podataka - 1, kljuc_pretrage);
+
+
+
+25. Rekurzije je najlakše koristiti primjenom rekurzivnih algoritama sortiranja kao što su quick sort,
+merge sort, insert sort ili pretraživanja kao što je binary search.
+
+	int rekurzivna_binarna_pretraga(PODATAK_NAMIRNICA* polje, int lijevo, int desno, int kljuc)
+	{
+    	int sredina;
+
+    	if (desno >= lijevo)
+    	{
+        	sredina = lijevo + (desno - lijevo) / 2;
+
+        	if (polje[sredina].identifikator == kljuc)
+        	{
+            	return sredina;
+        	}
+
+        	if (polje[sredina].identifikator > kljuc)
+        	{
+            	return rekurzivna_binarna_pretraga(polje, lijevo, sredina - 1, kljuc);
+        	}
+        	else
+        	{
+            	return rekurzivna_binarna_pretraga(polje, sredina + 1, desno, kljuc);
+        	}
+    	}
+
+    	return -1;
+	}
+
+
+
+26. Pokazivače na funkcije je najlakše koristiti upotrebom funkcije qsort() ili bsearch() iz standardne
+biblioteke.
+	
+	qsort(dinamicko_polje, broj_elemenata, sizeof(PODATAK_NAMIRNICA), funkcija_za_qsort);
 
