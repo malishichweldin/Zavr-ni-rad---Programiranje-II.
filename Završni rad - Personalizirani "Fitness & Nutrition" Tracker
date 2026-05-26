@@ -89,7 +89,7 @@ float provjera_unosa_float(float minimum, float maksimum)
 void provjera_unosa_string(char* spremnik, int max_velicina)
 {
     char* pokazivac;
-    int duljina;
+    size_t duljina;
 
     pokazivac = fgets(spremnik, max_velicina, stdin);
 
@@ -147,4 +147,637 @@ void provjeri_inicijalne_datoteke(void)
     {
         fclose(datoteka_korisnici);
     }
+}
+
+void kreiraj_zapis_namirnice(void)
+{
+    FILE* pokazivac_datoteke;
+    PODATAK_NAMIRNICA* novi_zapis;
+    size_t rezultat_pisanja;
+    char tekst_greske[256];
+
+    pokazivac_datoteke = fopen(BAZA_NAMIRNICE, "ab");
+
+    if (pokazivac_datoteke == NULL)
+    {
+        strcpy(tekst_greske, strerror(errno));
+        printf("Greska pri otvaranju datoteke: %s\n", tekst_greske);
+        return;
+    }
+
+    novi_zapis = (PODATAK_NAMIRNICA*)calloc(1, sizeof(PODATAK_NAMIRNICA));
+
+    if (novi_zapis == NULL)
+    {
+        perror("Greska pri alokaciji memorije");
+        fclose(pokazivac_datoteke);
+        return;
+    }
+
+    printf("Unesite jedinstveni ID: ");
+    novi_zapis->identifikator = provjera_unosa_int(1, 99999);
+
+    printf("Unesite naziv namirnice: ");
+    provjera_unosa_string(novi_zapis->naziv, MAX_STRING);
+
+    printf("Unesite kalorijsku vrijednost: ");
+    novi_zapis->energetska_vrijednost = provjera_unosa_float(0.0f, 9000.0f);
+
+    printf("Unesite kolicinu proteina: ");
+    novi_zapis->kolicina_proteina = provjera_unosa_float(0.0f, 100.0f);
+
+    printf("Unesite kolicinu masti: ");
+    novi_zapis->kolicina_masti = provjera_unosa_float(0.0f, 100.0f);
+
+    printf("Unesite kolicinu ugljikohidrata: ");
+    novi_zapis->kolicina_uh = provjera_unosa_float(0.0f, 100.0f);
+
+    rezultat_pisanja = fwrite(novi_zapis, sizeof(PODATAK_NAMIRNICA), 1, pokazivac_datoteke);
+
+    if (rezultat_pisanja == 1)
+    {
+        printf("Uspjesno zapisano u datoteku.\n");
+    }
+    else
+    {
+        printf("Doslo je do greske prilikom upisivanja.\n");
+    }
+
+    fclose(pokazivac_datoteke);
+
+    free(novi_zapis);
+    novi_zapis = NULL;
+}
+
+void procitaj_sve_namirnice(void)
+{
+    FILE* pokazivac_datoteke;
+    PODATAK_NAMIRNICA trenutni_zapis;
+
+    pokazivac_datoteke = fopen(BAZA_NAMIRNICE, "rb");
+
+    if (pokazivac_datoteke == NULL)
+    {
+        perror("Nije moguce citati datoteku");
+        return;
+    }
+
+    printf("\n%-5s %-20s %-8s %-8s\n", "ID", "NAZIV", "KCAL", "PROTEINI");
+    printf("--------------------------------------------------\n");
+
+    while (fread(&trenutni_zapis, sizeof(PODATAK_NAMIRNICA), 1, pokazivac_datoteke) == 1)
+    {
+        printf("%-5d %-20s %-8.2f %-8.2f\n",
+            trenutni_zapis.identifikator,
+            trenutni_zapis.naziv,
+            trenutni_zapis.energetska_vrijednost,
+            trenutni_zapis.kolicina_proteina);
+    }
+
+    fclose(pokazivac_datoteke);
+}
+
+void azuriraj_zapis_namirnice(void)
+{
+    FILE* pokazivac_datoteke;
+    PODATAK_NAMIRNICA privremeni_zapis;
+    int id_meta;
+    int nadjeno_stanje;
+    long lokacija_u_datoteci;
+
+    pokazivac_datoteke = fopen(BAZA_NAMIRNICE, "rb+");
+
+    if (pokazivac_datoteke == NULL)
+    {
+        perror("Datoteka se ne moze otvoriti za azuriranje");
+        return;
+    }
+
+    printf("Unesite ID namirnice koju zelite izmijeniti: ");
+    id_meta = provjera_unosa_int(1, 99999);
+    nadjeno_stanje = 0;
+
+    while (fread(&privremeni_zapis, sizeof(PODATAK_NAMIRNICA), 1, pokazivac_datoteke) == 1)
+    {
+        if (privremeni_zapis.identifikator == id_meta)
+        {
+            nadjeno_stanje = 1;
+
+            printf("Trenutna kalorijska vrijednost za %s je %.2f\n",
+                privremeni_zapis.naziv,
+                privremeni_zapis.energetska_vrijednost);
+
+            printf("Unesite novu kalorijsku vrijednost: ");
+            privremeni_zapis.energetska_vrijednost = provjera_unosa_float(0.0f, 9000.0f);
+
+            lokacija_u_datoteci = ftell(pokazivac_datoteke);
+            lokacija_u_datoteci = lokacija_u_datoteci - sizeof(PODATAK_NAMIRNICA);
+
+            fseek(pokazivac_datoteke, lokacija_u_datoteci, SEEK_SET);
+            fwrite(&privremeni_zapis, sizeof(PODATAK_NAMIRNICA), 1, pokazivac_datoteke);
+
+            printf("Podatak je uspjesno azuriran.\n");
+            break;
+        }
+    }
+
+    if (nadjeno_stanje == 0)
+    {
+        printf("Namirnica s trazenim ID brojem nije pronadjena.\n");
+    }
+
+    fclose(pokazivac_datoteke);
+}
+
+void obrisi_zapis_namirnice(void)
+{
+    FILE* pokazivac_izvor;
+    FILE* pokazivac_odrediste;
+    PODATAK_NAMIRNICA trenutna_meta;
+    int id_brisanje;
+    int obrisano_stanje;
+
+    pokazivac_izvor = fopen(BAZA_NAMIRNICE, "rb");
+
+    if (pokazivac_izvor == NULL)
+    {
+        perror("Greska izvorne datoteke");
+        return;
+    }
+
+    pokazivac_odrediste = fopen("privremena.bin", "wb");
+
+    if (pokazivac_odrediste == NULL)
+    {
+        perror("Greska kreiranja privremene datoteke");
+        fclose(pokazivac_izvor);
+        return;
+    }
+
+    printf("Koji ID zelite trajno obrisati: ");
+    id_brisanje = provjera_unosa_int(1, 99999);
+    obrisano_stanje = 0;
+
+    while (fread(&trenutna_meta, sizeof(PODATAK_NAMIRNICA), 1, pokazivac_izvor) == 1)
+    {
+        if (trenutna_meta.identifikator != id_brisanje)
+        {
+            fwrite(&trenutna_meta, sizeof(PODATAK_NAMIRNICA), 1, pokazivac_odrediste);
+        }
+        else
+        {
+            obrisano_stanje = 1;
+        }
+    }
+
+    fclose(pokazivac_izvor);
+    fclose(pokazivac_odrediste);
+
+    remove(BAZA_NAMIRNICE);
+    if (rename("privremena.bin", BAZA_NAMIRNICE) != 0)
+    {
+        perror("Greska prilikom preimenovanja datoteke");
+    }
+
+    if (obrisano_stanje == 1)
+    {
+        printf("Proces brisanja je dovrsen.\n");
+    }
+    else
+    {
+        printf("Ciljani ID ne postoji.\n");
+    }
+}
+
+void kreiraj_zapis_korisnika(void)
+{
+    FILE* pokazivac_datoteke;
+    PODATAK_KORISNIK novi_korisnik;
+
+    pokazivac_datoteke = fopen(BAZA_KORISNICI, "ab");
+
+    if (pokazivac_datoteke == NULL)
+    {
+        perror("Sustav ne moze otvoriti datoteku korisnika");
+        return;
+    }
+
+    printf("Unesite ID korisnika: ");
+    novi_korisnik.id_korisnika = provjera_unosa_int(1, 9999);
+
+    printf("Unesite ime: ");
+    provjera_unosa_string(novi_korisnik.ime_korisnika, MAX_STRING);
+
+    printf("Unesite tezinu u kg: ");
+    novi_korisnik.tezina_kg = provjera_unosa_float(20.0f, 300.0f);
+
+    printf("Unesite visinu u cm: ");
+    novi_korisnik.visina_cm = provjera_unosa_float(50.0f, 250.0f);
+
+    printf("Tip cilja (1 - Tezina, 2 - Kalorije): ");
+    novi_korisnik.odabran_cilj = provjera_unosa_int(1, 2);
+
+    if (novi_korisnik.odabran_cilj == 1)
+    {
+        printf("Ciljana tezina: ");
+        novi_korisnik.podatak_cilja.ciljana_kilaza = provjera_unosa_float(20.0f, 300.0f);
+    }
+    else
+    {
+        printf("Ciljani dnevni unos kalorija: ");
+        novi_korisnik.podatak_cilja.ciljane_kalorije = provjera_unosa_int(500, 10000);
+    }
+
+    fwrite(&novi_korisnik, sizeof(PODATAK_KORISNIK), 1, pokazivac_datoteke);
+    fclose(pokazivac_datoteke);
+
+    printf("Novi korisnicki profil je spremljen.\n");
+}
+
+void procitaj_sve_korisnike(void)
+{
+    FILE* pokazivac_datoteke;
+    PODATAK_KORISNIK k;
+
+    pokazivac_datoteke = fopen(BAZA_KORISNICI, "rb");
+
+    if (pokazivac_datoteke == NULL)
+    {
+        perror("Nije moguce ucitati korisnike");
+        return;
+    }
+
+    printf("\n%-5s %-15s %-10s %-15s\n", "ID", "IME", "TEZINA", "CILJ");
+    printf("--------------------------------------------------\n");
+
+    while (fread(&k, sizeof(PODATAK_KORISNIK), 1, pokazivac_datoteke) == 1)
+    {
+        printf("%-5d %-15s %-10.2f ", k.id_korisnika, k.ime_korisnika, k.tezina_kg);
+
+        if (k.odabran_cilj == 1)
+        {
+            printf("%.2f kg\n", k.podatak_cilja.ciljana_kilaza);
+        }
+        else
+        {
+            printf("%d kcal\n", k.podatak_cilja.ciljane_kalorije);
+        }
+    }
+
+    fclose(pokazivac_datoteke);
+}
+
+CVOR_LISTE* dodaj_element_liste(CVOR_LISTE* pocetak)
+{
+    CVOR_LISTE* novi_element;
+    CVOR_LISTE* privremeni_element;
+
+    novi_element = (CVOR_LISTE*)malloc(sizeof(CVOR_LISTE));
+
+    if (novi_element == NULL)
+    {
+        perror("Kriticna greska: Nema dostupne memorije");
+        exit(EXIT_FAILURE);
+    }
+
+    printf("Unesite ID zapisa dnevnika: ");
+    novi_element->unos.id_zapisa = provjera_unosa_int(1, 99999);
+
+    printf("Unesite ID namirnice iz baze: ");
+    novi_element->unos.referenca_namirnice = provjera_unosa_int(1, 99999);
+
+    printf("Unesite kolicinu u gramima: ");
+    novi_element->unos.kolicina_konzumirana = provjera_unosa_float(0.1f, 5000.0f);
+
+    novi_element->sljedeci = NULL;
+
+    if (pocetak == NULL)
+    {
+        return novi_element;
+    }
+    else
+    {
+        privremeni_element = pocetak;
+        while (privremeni_element->sljedeci != NULL)
+        {
+            privremeni_element = privremeni_element->sljedeci;
+        }
+        privremeni_element->sljedeci = novi_element;
+        return pocetak;
+    }
+}
+
+void rekurzivni_ispis_liste(CVOR_LISTE* trenutni)
+{
+    if (trenutni == NULL)
+    {
+        return;
+    }
+
+    printf("Zapis #%d | Ref. Namirnice: %d | Kolicina: %.2f g\n",
+        trenutni->unos.id_zapisa,
+        trenutni->unos.referenca_namirnice,
+        trenutni->unos.kolicina_konzumirana);
+
+    rekurzivni_ispis_liste(trenutni->sljedeci);
+}
+
+CVOR_LISTE* rekurzivno_brisanje_liste(CVOR_LISTE* trenutni)
+{
+    if (trenutni != NULL)
+    {
+        rekurzivno_brisanje_liste(trenutni->sljedeci);
+        free(trenutni);
+    }
+    return NULL;
+}
+
+int rekurzivno_prebrojavanje_liste(CVOR_LISTE* trenutni)
+{
+    if (trenutni == NULL)
+    {
+        return 0;
+    }
+    else
+    {
+        return 1 + rekurzivno_prebrojavanje_liste(trenutni->sljedeci);
+    }
+}
+
+int funkcija_za_qsort(const void* prvi, const void* drugi)
+{
+    const PODATAK_NAMIRNICA* p1;
+    const PODATAK_NAMIRNICA* p2;
+
+    p1 = (const PODATAK_NAMIRNICA*)prvi;
+    p2 = (const PODATAK_NAMIRNICA*)drugi;
+
+    if (p1->energetska_vrijednost < p2->energetska_vrijednost)
+    {
+        return -1;
+    }
+    else if (p1->energetska_vrijednost > p2->energetska_vrijednost)
+    {
+        return 1;
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+void pokreni_sortiranje_baze(void)
+{
+    FILE* pokazivac;
+    PODATAK_NAMIRNICA* dinamicko_polje;
+    long velicina_datoteke;
+    int broj_elemenata;
+
+    pokazivac = fopen(BAZA_NAMIRNICE, "rb");
+
+    if (pokazivac == NULL)
+    {
+        perror("Nema datoteke za sortiranje");
+        return;
+    }
+
+    fseek(pokazivac, 0, SEEK_END);
+    velicina_datoteke = ftell(pokazivac);
+    broj_elemenata = (int)(velicina_datoteke / sizeof(PODATAK_NAMIRNICA));
+    rewind(pokazivac);
+
+    if (broj_elemenata < 2)
+    {
+        printf("Nedovoljno podataka u bazi za sortiranje.\n");
+        fclose(pokazivac);
+        return;
+    }
+
+    dinamicko_polje = (PODATAK_NAMIRNICA*)calloc(broj_elemenata, sizeof(PODATAK_NAMIRNICA));
+
+    if (dinamicko_polje == NULL)
+    {
+        perror("Greska alokacije");
+        fclose(pokazivac);
+        return;
+    }
+
+    fread(dinamicko_polje, sizeof(PODATAK_NAMIRNICA), broj_elemenata, pokazivac);
+    fclose(pokazivac);
+
+    qsort(dinamicko_polje, broj_elemenata, sizeof(PODATAK_NAMIRNICA), funkcija_za_qsort);
+
+    pokazivac = fopen(BAZA_NAMIRNICE, "wb");
+
+    if (pokazivac != NULL)
+    {
+        fwrite(dinamicko_polje, sizeof(PODATAK_NAMIRNICA), broj_elemenata, pokazivac);
+        fclose(pokazivac);
+        printf("Baza podataka uspjesno sortirana po energetskoj vrijednosti.\n");
+    }
+
+    free(dinamicko_polje);
+    dinamicko_polje = NULL;
+}
+
+int rekurzivna_binarna_pretraga(PODATAK_NAMIRNICA* polje, int lijevo, int desno, int kljuc)
+{
+    int sredina;
+
+    if (desno >= lijevo)
+    {
+        sredina = lijevo + (desno - lijevo) / 2;
+
+        if (polje[sredina].identifikator == kljuc)
+        {
+            return sredina;
+        }
+
+        if (polje[sredina].identifikator > kljuc)
+        {
+            return rekurzivna_binarna_pretraga(polje, lijevo, sredina - 1, kljuc);
+        }
+        else
+        {
+            return rekurzivna_binarna_pretraga(polje, sredina + 1, desno, kljuc);
+        }
+    }
+
+    return -1;
+}
+
+void pokreni_pretragu_baze(void)
+{
+    FILE* pokazivac;
+    PODATAK_NAMIRNICA* polje;
+    long velicina;
+    int broj_podataka;
+    int kljuc_pretrage;
+    int rezultat_indeks;
+
+    pokazivac = fopen(BAZA_NAMIRNICE, "rb");
+
+    if (pokazivac == NULL)
+    {
+        perror("Greska baze");
+        return;
+    }
+
+    fseek(pokazivac, 0, SEEK_END);
+    velicina = ftell(pokazivac);
+    broj_podataka = (int)(velicina / sizeof(PODATAK_NAMIRNICA));
+    rewind(pokazivac);
+
+    if (broj_podataka <= 0)
+    {
+        printf("Baza je prazna.\n");
+        fclose(pokazivac);
+        return;
+    }
+
+    polje = (PODATAK_NAMIRNICA*)malloc(broj_podataka * sizeof(PODATAK_NAMIRNICA));
+
+    if (polje == NULL)
+    {
+        perror("Alokacija memorije nije uspjela");
+        fclose(pokazivac);
+        return;
+    }
+
+    fread(polje, sizeof(PODATAK_NAMIRNICA), broj_podataka, pokazivac);
+    fclose(pokazivac);
+
+    printf("Unesite ID za pretragu: ");
+    kljuc_pretrage = provjera_unosa_int(1, 99999);
+
+    rezultat_indeks = rekurzivna_binarna_pretraga(polje, 0, broj_podataka - 1, kljuc_pretrage);
+
+    if (rezultat_indeks != -1)
+    {
+        printf("Uspjesna pretraga: Pronadjen naziv: %s\n", polje[rezultat_indeks].naziv);
+    }
+    else
+    {
+        printf("Na zalost, namirnica s ID %d nije pronadjena.\n", kljuc_pretrage);
+    }
+
+    free(polje);
+    polje = NULL;
+}
+
+void napravi_sigurnosnu_kopiju(void)
+{
+    FILE* citanje;
+    FILE* pisanje;
+    int prenesen_bajt;
+
+    citanje = fopen(BAZA_NAMIRNICE, "rb");
+
+    if (citanje == NULL)
+    {
+        perror("Originalna datoteka nije dostupna");
+        return;
+    }
+
+    pisanje = fopen(BACKUP_DATOTEKA, "wb");
+
+    if (pisanje == NULL)
+    {
+        perror("Greska kod kreiranja backup datoteke");
+        fclose(citanje);
+        return;
+    }
+
+    while (1)
+    {
+        prenesen_bajt = fgetc(citanje);
+
+        if (feof(citanje))
+        {
+            break;
+        }
+
+        if (ferror(citanje))
+        {
+            perror("Greska za vrijeme citanja");
+            break;
+        }
+
+        fputc(prenesen_bajt, pisanje);
+    }
+
+    fclose(citanje);
+    fclose(pisanje);
+
+    printf("Kopiranje podataka u %s je zavrseno.\n", BACKUP_DATOTEKA);
+}
+
+void prikazi_velicinu_datoteke(void)
+{
+    FILE* datoteka;
+    long bajtovi;
+
+    datoteka = fopen(BAZA_NAMIRNICE, "rb");
+
+    if (datoteka == NULL)
+    {
+        perror("Ne mogu otvoriti datoteku za provjeru velicine");
+        return;
+    }
+
+    fseek(datoteka, 0, SEEK_END);
+    bajtovi = ftell(datoteka);
+
+    printf("Fizicka velicina glavne baze je %ld bajtova.\n", bajtovi);
+
+    fclose(datoteka);
+}
+
+void pokreni_izracun_bmi(void)
+{
+    float upis_tezine;
+    float upis_visine;
+    float rezultat_bmi;
+
+    printf("Unesite tezinu (kg): ");
+    upis_tezine = provjera_unosa_float(20.0f, 300.0f);
+
+    printf("Unesite visinu (cm): ");
+    upis_visine = provjera_unosa_float(50.0f, 250.0f);
+
+    upis_visine = upis_visine / 100.0f;
+    rezultat_bmi = IZRACUNAJ_BMI (upis_tezine, upis_visine);
+
+    printf("Vas Body Mass Index (BMI) iznosi: %.2f\n", rezultat_bmi);
+}
+
+void ispisi_ieee754_format(void)
+{
+    float upis_broja;
+    unsigned int* pokazivac_memorije;
+    int brojac_bita;
+    unsigned int vrijednost_bita;
+
+    printf("Unesite decimalni broj za provjeru standarda IEEE 754: ");
+    upis_broja = provjera_unosa_float(-10000.0f, 10000.0f);
+
+    pokazivac_memorije = (unsigned int*)&upis_broja;
+
+    printf("Prikaz u memoriji (32-bit float): ");
+
+    for (brojac_bita = 31; brojac_bita >= 0; brojac_bita = brojac_bita - 1)
+    {
+        vrijednost_bita = (*pokazivac_memorije >> brojac_bita) & 1;
+        printf("%u", vrijednost_bita);
+
+        if (brojac_bita == 31)
+        {
+            printf(" ");
+        }
+        else if (brojac_bita == 23)
+        {
+            printf(" ");
+        }
+    }
+    printf("\n");
 }
